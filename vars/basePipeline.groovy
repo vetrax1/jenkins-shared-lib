@@ -1,13 +1,15 @@
 def call(Map config) {
-  def dockerImage = config.dockerImage
-  def appPort     = config.port
-  def repoUrl     = config.repoUrl
+  def dockerImage     = config.dockerImage
+  def appPort         = config.port
+  def repoUrl         = config.repoUrl
+  def dockerfilePath  = config.dockerfile ?: './Dockerfile'
+  def contextDir      = config.contextDir ?: '.'
 
   pipeline {
     agent {
       kubernetes {
-        yamlFile 'jenkins/pod-template.yaml'
-        defaultContainer 'python'
+        yamlFile 'jenkins/kaniko-pod.yaml'
+        defaultContainer 'kaniko'
       }
     }
 
@@ -15,40 +17,57 @@ def call(Map config) {
       timeout(time: 10, unit: 'MINUTES')
     }
 
+    environment {
+      APP_PORT     = "${appPort}"
+      IMAGE_NAME   = "${dockerImage}"
+      DOCKERFILE   = "${dockerfilePath}"
+      CONTEXT_DIR  = "${contextDir}"
+    }
+
     stages {
       stage('Install Dependencies') {
         steps {
-          sh 'pip install -r requirements.txt'
+          container('kaniko') {
+            sh 'pip install -r requirements.txt'
+          }
         }
       }
 
       stage('Run App Test') {
         steps {
-          sh "python app.py & sleep 5 && curl http://localhost:${appPort} || true"
+          container('kaniko') {
+            sh 'python app.py & sleep 5 && curl http://localhost:$APP_PORT || true'
+          }
         }
       }
 
-      stage('Build Docker Image') {
+      stage('Build and Push Image (Kaniko)') {
         steps {
-          script {
-            docker.build(dockerImage)
+          container('kaniko') {
+            sh '''
+              /kaniko/executor \
+                --context=$CONTEXT_DIR \
+                --dockerfile=$DOCKERFILE \
+                --destination=$IMAGE_NAME \
+                --verbosity=info
+            '''
           }
         }
       }
 
       stage('Cleanup') {
         steps {
-          sh 'pkill python || true'
+          container('kaniko') {
+            sh 'pkill python || true'
+          }
         }
       }
     }
 
     post {
       always {
-        script {
-          echo "Build completed: ${currentBuild.fullDisplayName} → ${currentBuild.currentResult}"
-        }
+        echo "Build completed: ${currentBuild.fullDisplayName} → ${currentBuild.currentResult}"
       }
     }
-  } 
-}   
+  }
+}
