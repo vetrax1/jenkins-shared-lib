@@ -5,10 +5,10 @@ def call(Map config) {
 
   pipeline {
     agent {
-        kubernetes {
-            yamlFile 'jenkins/pod-template.yaml'
-            defaultContainer 'python'
-        }
+      kubernetes {
+        yamlFile 'jenkins/pod-template.yaml'
+        defaultContainer 'python'
+      }
     }
 
     options {
@@ -46,10 +46,9 @@ def call(Map config) {
     post {
       always {
         script {
-            echo "Build completed successfully: ${currentBuild.fullDisplayName} with result ${currentBuild.currentResult}"
-          }
+          echo "Build completed: ${currentBuild.fullDisplayName} → ${currentBuild.currentResult}"
         }
       }
     }
-  }
-}
+  } 
+}   
