@@ -27,14 +27,23 @@ def call(Map config) {
     stages {
       stage('Install Dependencies') {
         steps {
-          sh 'apk add --no-cache python3 py3-pip curl'
-          sh 'pip3 install -r requirements.txt'
+          sh '''
+            apk add --no-cache python3 py3-pip curl
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+          '''
         }
       }
 
       stage('Run App Test') {
         steps {
-          sh 'python3 app.py & sleep 5 && curl http://localhost:$APP_PORT || true'
+          sh '''
+            . venv/bin/activate
+            python app.py &
+            sleep 5
+            curl http://localhost:$APP_PORT || true
+          '''
         }
       }
 
@@ -50,7 +59,7 @@ def call(Map config) {
 
       stage('Cleanup') {
         steps {
-          sh 'pkill python3 || true'
+          sh 'pkill python || true'
         }
       }
     }
