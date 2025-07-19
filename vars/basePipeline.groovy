@@ -1,16 +1,15 @@
 def call(Map config) {
+  def dockerImage = config.dockerImage
+  def appPort     = config.port
+  def repoUrl     = config.repoUrl
+
   pipeline {
     agent any
-
-    environment {
-      DOCKER_IMAGE = config.dockerImage
-      APP_PORT     = config.port
-    }
 
     stages {
       stage('Checkout') {
         steps {
-          git url: config.repoUrl
+          git url: repoUrl
         }
       }
 
@@ -22,14 +21,14 @@ def call(Map config) {
 
       stage('Run App Test') {
         steps {
-          sh "python app.py & sleep 5 && curl http://localhost:${APP_PORT} || true"
+          sh "python app.py & sleep 5 && curl http://localhost:${appPort} || true"
         }
       }
 
       stage('Build Docker Image') {
         steps {
           script {
-            docker.build("${DOCKER_IMAGE}")
+            docker.build(dockerImage)
           }
         }
       }
