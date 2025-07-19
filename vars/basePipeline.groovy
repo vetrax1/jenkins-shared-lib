@@ -50,6 +50,7 @@ def call(Map config) {
       stage('Build and Push Docker Image') {
         steps {
           sh '''
+            export DOCKER_CONFIG=/kaniko/.docker
             docker version
             docker build -t $IMAGE_NAME -f $DOCKERFILE $CONTEXT_DIR
             docker push $IMAGE_NAME
