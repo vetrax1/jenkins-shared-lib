@@ -8,8 +8,8 @@ def call(Map config) {
   pipeline {
     agent {
       kubernetes {
-        yamlFile 'jenkins/kaniko-pod.yaml'
-        defaultContainer 'python'
+        yamlFile 'jenkins/docker-pod.yaml'
+        defaultContainer 'docker'
       }
     }
 
@@ -27,39 +27,30 @@ def call(Map config) {
     stages {
       stage('Install Dependencies') {
         steps {
-          container('python') {
-            sh 'pip install -r requirements.txt'
-          }
+          sh 'apk add --no-cache python3 py3-pip curl'
+          sh 'pip3 install -r requirements.txt'
         }
       }
 
       stage('Run App Test') {
         steps {
-          container('python') {
-            sh 'python app.py & sleep 5 && curl http://localhost:$APP_PORT || true'
-          }
+          sh 'python3 app.py & sleep 5 && curl http://localhost:$APP_PORT || true'
         }
       }
 
-      stage('Build and Push Image (Kaniko)') {
+      stage('Build and Push Docker Image') {
         steps {
-          container('kaniko') {
-            sh '''
-              /kaniko/executor \
-                --context=$CONTEXT_DIR \
-                --dockerfile=$DOCKERFILE \
-                --destination=$IMAGE_NAME \
-                --verbosity=info
-            '''
-          }
+          sh '''
+            docker version
+            docker build -t $IMAGE_NAME -f $DOCKERFILE $CONTEXT_DIR
+            docker push $IMAGE_NAME
+          '''
         }
       }
 
       stage('Cleanup') {
         steps {
-          container('python') {
-            sh 'pkill python || true'
-          }
+          sh 'pkill python3 || true'
         }
       }
     }
