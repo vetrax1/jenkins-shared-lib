@@ -7,12 +7,6 @@ def call(Map config) {
     agent any
 
     stages {
-      stage('Checkout') {
-        steps {
-          git url: repoUrl
-        }
-      }
-
       stage('Install Dependencies') {
         steps {
           sh 'pip install -r requirements.txt'
