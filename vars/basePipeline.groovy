@@ -4,7 +4,16 @@ def call(Map config) {
   def repoUrl     = config.repoUrl
 
   pipeline {
-    agent any
+    agent {
+        kubernetes {
+            yamlFile 'jenkins/pod-template.yaml'
+            defaultContainer 'python'
+        }
+    }
+
+    options {
+      timeout(time: 10, unit: 'MINUTES')
+    }
 
     stages {
       stage('Install Dependencies') {
@@ -30,6 +39,15 @@ def call(Map config) {
       stage('Cleanup') {
         steps {
           sh 'pkill python || true'
+        }
+      }
+    }
+
+    post {
+      always {
+        script {
+            echo "Build completed successfully: ${currentBuild.fullDisplayName} with result ${currentBuild.currentResult}"
+          }
         }
       }
     }
