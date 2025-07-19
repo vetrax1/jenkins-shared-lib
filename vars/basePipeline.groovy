@@ -9,7 +9,7 @@ def call(Map config) {
     agent {
       kubernetes {
         yamlFile 'jenkins/kaniko-pod.yaml'
-        defaultContainer 'kaniko'
+        defaultContainer 'python'
       }
     }
 
@@ -27,7 +27,7 @@ def call(Map config) {
     stages {
       stage('Install Dependencies') {
         steps {
-          container('kaniko') {
+          container('python') {
             sh 'pip install -r requirements.txt'
           }
         }
@@ -35,7 +35,7 @@ def call(Map config) {
 
       stage('Run App Test') {
         steps {
-          container('kaniko') {
+          container('python') {
             sh 'python app.py & sleep 5 && curl http://localhost:$APP_PORT || true'
           }
         }
@@ -57,7 +57,7 @@ def call(Map config) {
 
       stage('Cleanup') {
         steps {
-          container('kaniko') {
+          container('python') {
             sh 'pkill python || true'
           }
         }
